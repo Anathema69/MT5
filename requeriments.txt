@@ -1,0 +1,6 @@
+pandas
+matplotlib
+MetaTrader5
+requests
+openpyxl
+ipykernel
