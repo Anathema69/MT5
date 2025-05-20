@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>MT5 OHLC Downloader</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <h1>MT5 OHLC Downloader</h1>
+
+    <form action="/download" method="post" id="download-form">
+      <!-- Tipo de activo -->
+      <div class="form-group">
+        <label>Tipo de activo:</label>
+        <label><input type="radio" name="asset_type" value="synthetic"> Sintéticos</label>
+        <label><input type="radio" name="asset_type" value="forex" checked> Forex</label>
+      </div>
+
+      <!-- Símbolo -->
+      <div class="form-group">
+        <label for="symbol">Símbolo:</label>
+        <select name="symbol" id="symbol"></select>
+      </div>
+
+      <!-- Otro -->
+      <div class="form-group" id="other-container" style="display:none;">
+        <label for="symbol_other">Ingresa símbolo:</label>
+        <input type="text" name="symbol_other" id="symbol_other" placeholder="p.ej. GBPJPY">
+      </div>
+
+      <!-- Intervalo -->
+      <div class="form-group">
+        <label for="interval">Intervalo:</label>
+        <select name="interval" id="interval">
+          {% for val, label in intervals %}
+            <option value="{{ val }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Fechas -->
+      <div class="form-group">
+        <label for="start_date">Fecha inicio:</label>
+        <input type="date" id="start_date" name="start_date" value="{{ default_start }}" required>
+      </div>
+      <div class="form-group">
+        <label for="end_date">Fecha fin:</label>
+        <input type="date" id="end_date" name="end_date" value="{{ default_end }}" required>
+      </div>
+
+      <button type="submit" class="btn">Descargar Excel</button>
+    </form>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
