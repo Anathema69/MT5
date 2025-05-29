@@ -1,7 +1,7 @@
 # app/routes.py
 
 from flask import Flask, render_template, request, send_file, abort
-from app.mt5_client import fetch_ohlc
+from app.mt5_client import fetch_ohlc_chunked
 from io import StringIO, BytesIO
 from datetime import datetime, date, time
 import pandas as pd
@@ -66,17 +66,14 @@ def download():
     except:
         abort(400, "Fecha inválida")
 
-    # Límite de rango (30 días)
-    if (end_date - start_date).days > 30:
-        abort(400, "Escoger un rango menor")
 
     # Fetch OHLC
     start = datetime.combine(start_date, time.min)
     end = datetime.combine(end_date, time.min)
 
-    print(f"Fechas a enviar: {start} - {end}")
+
     try:
-        df = fetch_ohlc(symbol, interval, start, end)
+        df = fetch_ohlc_chunked(symbol, interval, start, end)
     except Exception as e:
         abort(500, f"Error al descargar datos: {e}")
 

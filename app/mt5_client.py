@@ -19,6 +19,22 @@ _initialized = False
 _server_offset: timedelta = None  # offset local del broker
 
 
+# Timeframe -> segundos por barra
+_BAR_SECONDS = {
+    "M1": 60, "M2": 120, "M3": 180, "M4": 240, "M5": 300,
+    "M6": 360, "M10": 600, "M12": 720, "M15": 900, "M20": 1200,
+    "M30": 1800,
+    "H1": 3600, "H2": 7200, "H3": 10800, "H4": 14400,
+    "H6": 21600, "H8": 28800, "H12": 43200,
+    "D1": 86400,
+    "W1": 604800,
+    "MN1": 2592000
+}
+
+
+_CHUNK_BARS = 70000  # barras por chunk recomendado
+
+
 def initialize_mt5():
     """
     Inicializa MT5 una sola vez y lee el offset horario del terminal.
@@ -109,3 +125,39 @@ def fetch_ohlc(symbol: str,
 
     # 7) Columnas de salida
     return df[['time', 'open', 'high', 'low', 'close', 'tick_volume']]
+
+def _get_chunks(start: datetime, end: datetime, bar_seconds: int) -> list[tuple[datetime, datetime]]:
+    """
+    Devuelve lista de pares (chunk_start, chunk_end) para no exceder _CHUNK_BARS.
+    """
+    max_delta = timedelta(seconds=_CHUNK_BARS * bar_seconds)
+    chunks = []
+    curr = start
+    while curr < end:
+        chunk_end = min(end, curr + max_delta)
+        chunks.append((curr, chunk_end))
+        curr = chunk_end
+    return chunks
+
+def fetch_ohlc_chunked(symbol: str,
+                       timeframe: str,
+                       start: datetime,
+                       end: datetime) -> pd.DataFrame:
+    """
+    Igual a fetch_ohlc, pero en chunks de _CHUNK_BARS.
+    """
+    # calcular tamaño en segundos por barra
+    if timeframe not in _BAR_SECONDS:
+        raise ValueError(f"Timeframe desconocido: {timeframe}")
+    secs = _BAR_SECONDS[timeframe]
+    chunks = _get_chunks(start, end, secs)
+
+    dfs = []
+    for s, e in chunks:
+        df_chunk = fetch_ohlc(symbol, timeframe, s, e)
+        dfs.append(df_chunk)
+
+    full = pd.concat(dfs, ignore_index=True)
+    full = full.drop_duplicates(subset=['time'])
+    full = full.sort_values('time').reset_index(drop=True)
+    return full
