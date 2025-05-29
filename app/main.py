@@ -4,6 +4,7 @@ import threading
 import socket
 import webbrowser
 from app.routes import app as flask_app
+
 from app.mt5_client import initialize_mt5, shutdown_mt5
 
 def find_free_port():

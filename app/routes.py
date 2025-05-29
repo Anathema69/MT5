@@ -2,7 +2,7 @@
 
 from flask import Flask, render_template, request, send_file, abort
 from app.mt5_client import fetch_ohlc
-from io import BytesIO
+from io import StringIO, BytesIO
 from datetime import datetime, date, time
 import pandas as pd
 
@@ -70,26 +70,25 @@ def download():
     if (end_date - start_date).days > 30:
         abort(400, "Escoger un rango menor")
 
-    # Construye datetimes en 0:00 y 23:59:59
-    start = datetime.combine(start_date, time.min)
-    end   = datetime.combine(end_date, time.max)
-
     # Fetch OHLC
+    start = datetime.combine(start_date, time.min)
+    end = datetime.combine(end_date, time.min)
+
+    print(f"Fechas a enviar: {start} - {end}")
     try:
         df = fetch_ohlc(symbol, interval, start, end)
     except Exception as e:
         abort(500, f"Error al descargar datos: {e}")
 
-    # Genera Excel en memoria
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False, sheet_name=symbol)
-    output.seek(0)
+    # Genera CSV en memoria
+    csv_buffer = StringIO()
+    df.to_csv(csv_buffer, index=False)
+    csv_bytes = csv_buffer.getvalue().encode('utf-8')
+    filename = f"{symbol}_{interval}_{start_date}_{end_date}.csv"
 
-    filename = f"{symbol}_{interval}_{start_date}_{end_date}.xlsx"
     return send_file(
-        output,
+        BytesIO(csv_bytes),
         as_attachment=True,
         download_name=filename,
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        mimetype="text/csv"
     )

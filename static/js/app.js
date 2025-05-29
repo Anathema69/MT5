@@ -59,4 +59,46 @@ document.addEventListener("DOMContentLoaded", () => {
   // Init: carga divisas (forex) por defecto
   const defaultType = document.querySelector('input[name="asset_type"]:checked').value;
   populateSymbols(defaultType);
+
+  // Intercepta el envío del form para manejar la descarga por fetch()
+const downloadForm = document.getElementById('download-form');
+if (downloadForm) {
+  downloadForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const loader = document.getElementById('loader');
+    loader.style.display = 'flex';
+
+    const formData = new FormData(downloadForm);
+    try {
+      const resp = await fetch(downloadForm.action, {
+        method: downloadForm.method,
+        body: formData
+      });
+      if (!resp.ok) throw new Error(`Error ${resp.status}`);
+
+      // Extrae filename de Content-Disposition
+      const cd = resp.headers.get('Content-Disposition') || '';
+      const m  = cd.match(/filename="?(.+?)"?$/);
+      const filename = m ? m[1] : 'data.csv';
+
+      // Descarga el blob
+      const blob = await resp.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+    } catch (err) {
+      alert(err);
+    } finally {
+      loader.style.display = 'none';
+    }
+  });
+}
+
+
 });

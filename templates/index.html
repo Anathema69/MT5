@@ -6,6 +6,14 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
+    <!-- loader overlay -->
+  <div id="loader" class="loader-overlay" style="display:none;">
+    <div class="loader-content">
+      <div class="spinner"></div>
+      <p>Descargando datos…</p>
+    </div>
+  </div>
+
   <div class="container">
     <h1>MT5 OHLC Downloader</h1>
 
@@ -52,6 +60,7 @@
       <button type="submit" class="btn">Descargar Excel</button>
     </form>
   </div>
+
 
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
