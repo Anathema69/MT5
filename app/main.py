@@ -22,7 +22,7 @@ if __name__ == "__main__":
     try:
         initialize_mt5()
     except Exception as e:
-        print(f"❌ Error inicializando MT5: {e}")
+        print(f"Error inicializando MT5: {e}")
         exit(1)
 
     # Encuentra un puerto libre
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     # Arranca Flask en background
     server_thread = threading.Thread(target=start_server, args=(port,), daemon=True)
     server_thread.start()
-    print(f"🖥️  Servidor Flask arrancado en {url}")
+    print(f"Servidor Flask arrancado en {url}")
 
     # Abre el navegador por defecto
     webbrowser.open(url)
