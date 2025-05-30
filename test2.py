@@ -1,10 +1,11 @@
 import MetaTrader5 as mt5
+import sys
 
 # 1) Inicializa MT5
 if not mt5.initialize():
     print("Error al inicializar MT5:", mt5.last_error())
     mt5.shutdown()
-    exit()
+    sys.exit()
 
 # 2) Obtén todos los símbolos
 all_syms = mt5.symbols_get()

@@ -4,6 +4,7 @@ import threading
 import socket
 import webbrowser
 from app.routes import app as flask_app
+import sys
 
 from app.mt5_client import initialize_mt5, shutdown_mt5
 
@@ -23,7 +24,7 @@ if __name__ == "__main__":
         initialize_mt5()
     except Exception as e:
         print(f"Error inicializando MT5: {e}")
-        exit(1)
+        sys.exit(1)
 
     # Encuentra un puerto libre
     port = find_free_port()

@@ -81,7 +81,7 @@ body {
   transition: border-color .2s, box-shadow .2s;
 }
 .field select {
-  background-image: url('/static/img/arrow-down.svg');
+  background-image: url('/static/img/arrow-down.png');
   background-repeat: no-repeat;
   background-position: right 1rem center;
   background-size: 1em;
