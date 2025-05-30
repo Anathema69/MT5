@@ -6,6 +6,8 @@ import MetaTrader5 as mt5
 import pandas as pd
 from datetime import datetime, date, time, timedelta, timezone
 from dotenv import load_dotenv
+import logging, os
+logger = logging.getLogger(__name__)
 
 # carga .env, login, etc…
 load_dotenv()
@@ -44,10 +46,25 @@ def initialize_mt5():
     if _initialized:
         return
 
-    if not mt5.initialize(path=_MT5_PATH or None,
-                          login=_LOGIN,
-                          password=_PASSWORD,
-                          server=_SERVER):
+
+    # DEBUG: ver exactamente qué estamos cargando
+    logger.debug(f"MT5_PATH raw: {os.getenv('MT5_PATH')!r}")
+
+    if _MT5_PATH:
+        success = mt5.initialize(
+            path=_MT5_PATH,
+            login=_LOGIN,
+            password=_PASSWORD,
+            server=_SERVER
+        )
+    else:
+        success = mt5.initialize(
+            login=_LOGIN,
+            password=_PASSWORD,
+            server=_SERVER
+        )
+
+    if not success:
         err = mt5.last_error()
         raise RuntimeError(f"MT5 initialize() falló: {err}")
 
