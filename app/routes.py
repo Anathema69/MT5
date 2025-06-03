@@ -1,4 +1,16 @@
 # app/routes.py
+# app/routes.py  – antes de crear Flask()
+import sys, os
+
+if getattr(sys, "frozen", False):
+    # PyInstaller unpack dir
+    base_path = sys._MEIPASS
+else:
+    # entorno normal de Python
+    base_path = os.path.dirname(os.path.dirname(__file__))
+
+
+
 
 from flask import Flask, render_template, request, send_file, abort
 from app.mt5_client import fetch_ohlc_chunked
@@ -8,9 +20,10 @@ import pandas as pd
 
 app = Flask(
     __name__,
-    template_folder="../templates",
-    static_folder="../static"
+    template_folder=os.path.join(base_path, "templates"),
+    static_folder=os.path.join(base_path, "static"),
 )
+
 
 # Intervalos disponibles
 intervals = [
