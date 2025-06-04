@@ -1,21 +1,19 @@
 # app/mt5_client.py
 
 import os
-
 import MetaTrader5 as mt5
 import pandas as pd
-from datetime import datetime, date, time, timedelta, timezone
-from dotenv import load_dotenv
-import logging, os
+from datetime import datetime, timedelta, timezone
+import logging
+
 logger = logging.getLogger(__name__)
 
-# carga .env, login, etc…
-load_dotenv()
-
-_MT5_PATH = os.getenv("MT5_PATH")
-_LOGIN = int(os.getenv("MT5_LOGIN", 0))
-_PASSWORD = os.getenv("MT5_PASSWORD", "")
-_SERVER = os.getenv("MT5_SERVER", "")
+# ——— Credenciales DEMO hardcodeadas para FOREX ———
+_MT5_PATH = r"C:\Program Files\MetaTrader 5\terminal64.exe"
+_LOGIN    = 680557
+_PASSWORD = "-nSsId0a"
+_SERVER   = "TenTrade-Server"
+# ——————————————————————————————————————————————
 
 _initialized = False
 _server_offset: timedelta = None  # offset local del broker
@@ -46,23 +44,18 @@ def initialize_mt5():
     if _initialized:
         return
 
+    # DEBUG: vemos qué rutas y credenciales estamos usando
+    logger.debug(f"MT5_PATH hardcodeado: {_MT5_PATH!r}")
+    logger.debug(f"LOGIN hardcodeado:   {_LOGIN!r}")
+    logger.debug(f"SERVER hardcodeado:  {_SERVER!r}")
 
-    # DEBUG: ver exactamente qué estamos cargando
-    logger.debug(f"MT5_PATH raw: {os.getenv('MT5_PATH')!r}")
-
-    if _MT5_PATH:
-        success = mt5.initialize(
-            path=_MT5_PATH,
-            login=_LOGIN,
-            password=_PASSWORD,
-            server=_SERVER
-        )
-    else:
-        success = mt5.initialize(
-            login=_LOGIN,
-            password=_PASSWORD,
-            server=_SERVER
-        )
+    # Llamamos a mt5.initialize con parámetros fijos
+    success = mt5.initialize(
+        path=_MT5_PATH,
+        login=_LOGIN,
+        password=_PASSWORD,
+        server=_SERVER
+    )
 
     if not success:
         err = mt5.last_error()
