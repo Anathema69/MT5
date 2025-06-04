@@ -3,16 +3,15 @@
 import sys, os
 from flask import Flask, render_template, request, send_file, abort
 from io import StringIO, BytesIO
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 import pandas as pd
 
-from app.mt5_client import fetch_ohlc_chunked, set_mode  # <— importamos set_mode
+from app.mt5_client import fetch_ohlc_chunked, set_mode
 
+# --- mismo bloque de detección de base_path ---
 if getattr(sys, "frozen", False):
-    # PyInstaller unpack dir
     base_path = sys._MEIPASS
 else:
-    # entorno normal de Python
     base_path = os.path.dirname(os.path.dirname(__file__))
 
 app = Flask(
@@ -21,7 +20,7 @@ app = Flask(
     static_folder=os.path.join(base_path, "static"),
 )
 
-# Intervalos disponibles (igual que antes)
+# Intervalos disponibles (sin cambios)
 intervals = [
     ("M1",  "1 Minuto"),
     ("M2",  "2 Minutos"),
@@ -48,52 +47,46 @@ intervals = [
 
 @app.route("/", methods=["GET"])
 def index():
-    today = date.today().isoformat()
+    today = date.today()
+    seven_days_ago = today - timedelta(days=7)
+
     return render_template(
         "index.html",
         intervals=intervals,
-        default_start=today,
-        default_end=today
+        default_start=seven_days_ago.isoformat(),  # por ejemplo "2025-05-27"
+        default_end=today.isoformat(),             # por ejemplo "2025-06-03"
     )
 
 @app.route("/download", methods=["POST"])
 def download():
-    # Leemos el tipo de activo (forex o synthetic)
-    asset_type = request.form.get("asset_type", "forex")
-    # Ajustamos las credenciales de MT5 según la opción
+    asset_type = request.form.get("asset_type", "synthetic")
     try:
         set_mode(asset_type)
     except Exception as e:
         abort(400, f"Modo inválido: {e}")
 
-    # Símbolo
     symbol = request.form.get("symbol")
     if symbol == "other":
         symbol = request.form.get("symbol_other", "").strip()
     if not symbol:
         abort(400, "Símbolo inválido")
 
-    # Intervalo
     interval = request.form.get("interval")
 
-    # Fechas
     try:
         start_date = date.fromisoformat(request.form.get("start_date"))
         end_date   = date.fromisoformat(request.form.get("end_date"))
     except:
         abort(400, "Fecha inválida")
 
-    # Convertimos a datetime naïve
     start = datetime.combine(start_date, time.min)
     end   = datetime.combine(end_date, time.min)
 
-    # Obtenemos el DataFrame con OHLC chunked
     try:
         df = fetch_ohlc_chunked(symbol, interval, start, end)
     except Exception as e:
         abort(500, f"Error al descargar datos: {e}")
 
-    # Genera CSV en memoria
     csv_buffer = StringIO()
     df.to_csv(csv_buffer, index=False)
     csv_bytes = csv_buffer.getvalue().encode('utf-8')

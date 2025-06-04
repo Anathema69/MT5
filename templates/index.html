@@ -28,8 +28,8 @@
       <form id="download-form" action="/download" method="post">
         <!-- Tipo de activo -->
         <div class="asset-type">
-          <label><input type="radio" name="asset_type" value="synthetic"> Sintéticos</label>
-          <label><input type="radio" name="asset_type" value="forex" checked> Forex</label>
+          <label><input type="radio" name="asset_type" value="synthetic" checked> Sintéticos</label>
+          <label><input type="radio" name="asset_type" value="forex"> Forex</label>
         </div>
 
         <!-- Grid: Símbolo + Intervalo -->
@@ -37,13 +37,13 @@
           <div class="field">
             <label for="symbol-select">Símbolo</label>
             <select id="symbol-select" name="symbol" required>
-              <!-- Las opciones se inyectan por JS -->
+              <!-- JS se encargará de inyectar opciones y seleccionar la primera -->
             </select>
           </div>
           <div class="field">
             <label for="interval-select">Intervalo</label>
             <select id="interval-select" name="interval" required>
-              <!-- Las opciones se inyectan por JS -->
+              <!-- JS inyecta los intervalos y selecciona el primero -->
             </select>
           </div>
         </div>
@@ -52,11 +52,25 @@
         <div class="grid">
           <div class="field">
             <label for="start-date">Fecha inicio</label>
-            <input type="text" id="start-date" name="start_date" required>
+            <!-- Valor inicial: {{ default_start }} -->
+            <input
+              type="text"
+              id="start-date"
+              name="start_date"
+              value="{{ default_start }}"
+              required
+            >
           </div>
           <div class="field">
             <label for="end-date">Fecha fin</label>
-            <input type="text" id="end-date" name="end_date" required>
+            <!-- Valor inicial: {{ default_end }} -->
+            <input
+              type="text"
+              id="end-date"
+              name="end_date"
+              value="{{ default_end }}"
+              required
+            >
           </div>
         </div>
 
@@ -65,7 +79,7 @@
     </div>
   </div>
 
-  <!-- JS libs y tu lógica -->
+  <!-- JS libs y lógica -->
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
