@@ -8,48 +8,88 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# ——— Credenciales DEMO hardcodeadas para FOREX ———
-_MT5_PATH = r"C:\Program Files\MetaTrader 5\terminal64.exe"
-_LOGIN    = 680557
-_PASSWORD = "-nSsId0a"
-_SERVER   = "TenTrade-Server"
-# ——————————————————————————————————————————————
+# ——— Credenciales y rutas para cada modo ———
+_FOREX = {
+    "MT5_PATH": r"C:\Program Files\MetaTrader 5\terminal64.exe",
+    "LOGIN":    680557,
+    "PASSWORD": "-nSsId0a",
+    "SERVER":   "TenTrade-Server"
+}
+_SYNTHETIC = {
+    "MT5_PATH": r"C:\Program Files\MT5 Weltrade\terminal64.exe",
+    "LOGIN":    19299053,
+    "PASSWORD": "]Zc2p7+B",
+    "SERVER":   "Weltrade-Demo"
+}
+
+# Variables globales que se van a reconfigurar en runtime
+_MT5_PATH = None
+_LOGIN    = None
+_PASSWORD = None
+_SERVER   = None
 
 _initialized = False
 _server_offset: timedelta = None  # offset local del broker
 
-
 # Timeframe -> segundos por barra
 _BAR_SECONDS = {
-    "M1": 60, "M2": 120, "M3": 180, "M4": 240, "M5": 300,
-    "M6": 360, "M10": 600, "M12": 720, "M15": 900, "M20": 1200,
-    "M30": 1800,
-    "H1": 3600, "H2": 7200, "H3": 10800, "H4": 14400,
-    "H6": 21600, "H8": 28800, "H12": 43200,
-    "D1": 86400,
-    "W1": 604800,
-    "MN1": 2592000
+    "M1":   60,      "M2":   120,    "M3":   180,    "M4":   240,
+    "M5":  300,      "M6":   360,    "M10":  600,    "M12":  720,
+    "M15": 900,      "M20": 1200,    "M30": 1800,
+    "H1":  3600,     "H2":  7200,    "H3": 10800,    "H4": 14400,
+    "H6": 21600,     "H8": 28800,    "H12": 43200,
+    "D1": 86400,     "W1": 604800,   "MN1":2592000
 }
-
 
 _CHUNK_BARS = 70000  # barras por chunk recomendado
 
 
+def set_mode(mode: str):
+    """
+    Configura globalmente _MT5_PATH, _LOGIN, _PASSWORD y _SERVER según el modo:
+      - "forex"    -> usa credenciales de _FOREX
+      - "synthetic" -> usa credenciales de _SYNTHETIC
+
+    Si ya había una instancia inicializada, se hace shutdown para forzar reconexión.
+    """
+    global _MT5_PATH, _LOGIN, _PASSWORD, _SERVER, _initialized
+
+    # Si ya estaba inicializado con otro modo, cerramos para reconectar
+    if _initialized:
+        mt5.shutdown()
+        _initialized = False
+
+    if mode == "forex":
+        creds = _FOREX
+    elif mode == "synthetic":
+        creds = _SYNTHETIC
+    else:
+        raise ValueError(f"Modo desconocido: {mode!r}")
+
+    _MT5_PATH = creds["MT5_PATH"]
+    _LOGIN    = creds["LOGIN"]
+    _PASSWORD = creds["PASSWORD"]
+    _SERVER   = creds["SERVER"]
+    _initialized = False
+
+
 def initialize_mt5():
     """
-    Inicializa MT5 una sola vez y lee el offset horario del terminal.
+    Inicializa MT5 una sola vez usando las variables globales:
+        _MT5_PATH, _LOGIN, _PASSWORD, _SERVER.
+
+    Después de inicializar, lee el offset horario del broker.
     """
     global _initialized, _server_offset
 
     if _initialized:
         return
 
-    # DEBUG: vemos qué rutas y credenciales estamos usando
-    logger.debug(f"MT5_PATH hardcodeado: {_MT5_PATH!r}")
-    logger.debug(f"LOGIN hardcodeado:   {_LOGIN!r}")
-    logger.debug(f"SERVER hardcodeado:  {_SERVER!r}")
+    logger.debug(f"MT5_PATH configurado: {_MT5_PATH!r}")
+    logger.debug(f"LOGIN configurado:    {_LOGIN!r}")
+    logger.debug(f"SERVER configurado:   {_SERVER!r}")
 
-    # Llamamos a mt5.initialize con parámetros fijos
+    # Llamamos a mt5.initialize con los valores que haya dejado set_mode()
     success = mt5.initialize(
         path=_MT5_PATH,
         login=_LOGIN,
@@ -69,6 +109,9 @@ def initialize_mt5():
 
 
 def shutdown_mt5():
+    """
+    Cierra MT5 si estaba inicializado.
+    """
     global _initialized
     if _initialized:
         mt5.shutdown()
@@ -80,10 +123,8 @@ def fetch_ohlc(symbol: str,
                start: datetime,
                end: datetime) -> pd.DataFrame:
     """
-    start/end son datetime naïve en hora LOCAL del broker, p.ej.
-    2025-05-01 00:00   hasta   2025-05-06 00:00
+    Descarga OHLC entre start y end (datetime naïve en zona local del broker).
     """
-
     initialize_mt5()
 
     # 1) Mapa de timeframes
@@ -113,7 +154,6 @@ def fetch_ohlc(symbol: str,
     end_aware = end.replace(tzinfo=local_tz)
 
     # 4) Pedimos las barras entre esos datetimes aware
-
     rates = mt5.copy_rates_range(symbol, mt5_tf, start_aware, end_aware)
     if rates is None:
         err = mt5.last_error()
@@ -121,9 +161,8 @@ def fetch_ohlc(symbol: str,
 
     # 5) A DataFrame y convertimos el campo `time` (viene en UTC)
     df = pd.DataFrame(rates)
-
     df['time'] = pd.to_datetime(df['time'], unit='s', utc=True)
-    # y lo llevamos de UTC → zona local del broker, luego lo hacemos naïve:
+    # Lo llevamos de UTC -> zona local del broker, luego lo hacemos naïve:
     df['time'] = (
         df['time']
         .dt.tz_convert(local_tz)
@@ -133,8 +172,9 @@ def fetch_ohlc(symbol: str,
     # 6) Filtramos exactamente entre start y end (inclusive si quieres)
     df = df[(df['time'] >= start) & (df['time'] <= end)]
 
-    # 7) Columnas de salida
-    return df[['time', 'open', 'high', 'low', 'close', 'tick_volume']]
+    # 7) Devolvemos solo las columnas de salida
+    return df #[['time', 'open', 'high', 'low', 'close', 'tick_volume']]
+
 
 def _get_chunks(start: datetime, end: datetime, bar_seconds: int) -> list[tuple[datetime, datetime]]:
     """
@@ -149,6 +189,7 @@ def _get_chunks(start: datetime, end: datetime, bar_seconds: int) -> list[tuple[
         curr = chunk_end
     return chunks
 
+
 def fetch_ohlc_chunked(symbol: str,
                        timeframe: str,
                        start: datetime,
@@ -156,7 +197,6 @@ def fetch_ohlc_chunked(symbol: str,
     """
     Igual a fetch_ohlc, pero en chunks de _CHUNK_BARS.
     """
-    # calcular tamaño en segundos por barra
     if timeframe not in _BAR_SECONDS:
         raise ValueError(f"Timeframe desconocido: {timeframe}")
     secs = _BAR_SECONDS[timeframe]
@@ -171,3 +211,7 @@ def fetch_ohlc_chunked(symbol: str,
     full = full.drop_duplicates(subset=['time'])
     full = full.sort_values('time').reset_index(drop=True)
     return full
+
+
+# ——— Al importar el módulo, establecemos “forex” como modo por defecto ———
+set_mode("forex")

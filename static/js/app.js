@@ -1,8 +1,8 @@
-// app.js
+// static/js/app.js
 document.addEventListener("DOMContentLoaded", () => {
   // 1) Datos de símbolos e intervalos
   const symbols = {
-    synthetic: ["gainx400", "gainx600"],
+    synthetic: ["PainX 400", "FlipX 2"],
     forex: [
       "AUDCAD","AUDCHF","AUDJPY","AUDNZD","AUDUSD",
       "CADCHF","CADJPY","CHFJPY",
@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
       "TRYJPY",
       "USDCAD","USDCHF","USDCNH","USDHKD","USDHUF","USDJPY","USDMXN","USDNOK","USDPLN","USDSEK","USDSGD","USDTRY","USDZAR"
     ]
-  }; // :contentReference[oaicite:0]{index=0}
+  };
 
   const intervals = [
     ["M1",  "1 Minuto"], ["M2",  "2 Minutos"], ["M3",  "3 Minutos"],
@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ["H4",  "4 Horas"],  ["H6",  "6 Horas"],   ["H8",  "8 Horas"],
     ["H12", "12 Horas"], ["D1",  "Diario"],    ["W1",  "Semanal"],
     ["MN1", "Mensual"]
-  ]; // :contentReference[oaicite:1]{index=1}
+  ];
 
   // 2) Inicializar Tom Select para el Símbolo
   const symbolSelect = new TomSelect("#symbol-select", {
@@ -62,7 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
     allowInput: true
   });
 
-  // 5) Manejo del formulario + spinner
+  // 5) Manejo del formulario + spinner (igual que antes)
   const form = document.getElementById("download-form");
   const loader = document.getElementById("loader");
 

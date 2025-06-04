@@ -1,6 +1,12 @@
 # app/routes.py
-# app/routes.py  – antes de crear Flask()
+
 import sys, os
+from flask import Flask, render_template, request, send_file, abort
+from io import StringIO, BytesIO
+from datetime import datetime, date, time
+import pandas as pd
+
+from app.mt5_client import fetch_ohlc_chunked, set_mode  # <— importamos set_mode
 
 if getattr(sys, "frozen", False):
     # PyInstaller unpack dir
@@ -9,23 +15,13 @@ else:
     # entorno normal de Python
     base_path = os.path.dirname(os.path.dirname(__file__))
 
-
-
-
-from flask import Flask, render_template, request, send_file, abort
-from app.mt5_client import fetch_ohlc_chunked
-from io import StringIO, BytesIO
-from datetime import datetime, date, time
-import pandas as pd
-
 app = Flask(
     __name__,
     template_folder=os.path.join(base_path, "templates"),
     static_folder=os.path.join(base_path, "static"),
 )
 
-
-# Intervalos disponibles
+# Intervalos disponibles (igual que antes)
 intervals = [
     ("M1",  "1 Minuto"),
     ("M2",  "2 Minutos"),
@@ -62,6 +58,14 @@ def index():
 
 @app.route("/download", methods=["POST"])
 def download():
+    # Leemos el tipo de activo (forex o synthetic)
+    asset_type = request.form.get("asset_type", "forex")
+    # Ajustamos las credenciales de MT5 según la opción
+    try:
+        set_mode(asset_type)
+    except Exception as e:
+        abort(400, f"Modo inválido: {e}")
+
     # Símbolo
     symbol = request.form.get("symbol")
     if symbol == "other":
@@ -79,12 +83,11 @@ def download():
     except:
         abort(400, "Fecha inválida")
 
-
-    # Fetch OHLC
+    # Convertimos a datetime naïve
     start = datetime.combine(start_date, time.min)
-    end = datetime.combine(end_date, time.min)
+    end   = datetime.combine(end_date, time.min)
 
-
+    # Obtenemos el DataFrame con OHLC chunked
     try:
         df = fetch_ohlc_chunked(symbol, interval, start, end)
     except Exception as e:
