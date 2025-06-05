@@ -165,8 +165,7 @@ def fetch_ohlc(symbol: str,
     # 6) Filtramos exactamente entre start y end (inclusive si quieres)
     df = df[(df['time'] >= start) & (df['time'] <= end)]
 
-    # 7) Devolvemos las columnas de salida
-    return df[['time', 'open', 'high', 'low', 'close', 'tick_volume']]
+    return df
 
 
 def _get_chunks(start: datetime, end: datetime, bar_seconds: int) -> list[tuple[datetime, datetime]]:
@@ -232,11 +231,69 @@ def fetch_ticks_chunked(symbol: str,
 
     if not dfs:
         # Si no hubo ticks, devolvemos un DataFrame vacío con columnas típicas
-        return pd.DataFrame(columns=['time', 'bid', 'ask', 'last', 'volume'])
+        return pd.DataFrame(columns=['date','time', 'bid', 'ask', 'last', 'volume', 'flags'])
+
 
     full = pd.concat(dfs, ignore_index=True)
     full = full.sort_values('time').reset_index(drop=True)
-    return full
+    full = full[['time', 'bid', 'ask', 'last', 'volume', 'flags']]
+
+    #formateamos el df para la salida esperada
+    full_formated = format_df(full)
+
+    return full_formated
+
+
+
+def format_df(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Toma un DataFrame cuyo primer columna es datetime (nombre 'time' o equivalente)
+    y las columnas siguientes son numéricas. Devuelve un nuevo DataFrame donde:
+      - Se separa la primera columna datetime en:
+          * 'date' -> solo fecha en formato 'dd-mm-yy'
+          * 'time' -> solo hora en formato 'HH:MM:SS'
+      - Las columnas numéricas se convierten a float y se redondean a 5 decimales.
+    Si ocurre cualquier error, se imprime en consola el mensaje de error junto con
+    los nombres de columnas que lo provocaron, y se retorna el DataFrame original sin modificaciones.
+    """
+    try:
+        # Hacemos copia para no modificar el original
+        df2 = df.copy()
+
+        # 1) Asegurarnos de que la primera columna sea datetime
+        time_col = df2.columns[0]
+
+
+        # 2) Extraer fecha y hora en dos columnas nuevas
+        #    - 'date' en formato dd-mm-yy
+        #    - 'time' en formato HH:MM:SS
+        df2.insert(0, 'DATE', pd.to_datetime(df2[time_col].dt.date, format='%d/%m/%y'))
+
+        # Esto crea una columna de objetos time (sin fecha):
+        # Se usa 'TIME' para que al eliminar no se confunda con el 'time' original
+        df2.insert(1, 'TIME', df2[time_col].dt.time)
+
+        # 3) Eliminar la columna datetime original
+        df2 = df2.drop(columns=[time_col])
+
+        # 4) Identificar las columnas "numéricas" restantes (cualquier dtype numérico)
+        #    y convertir a float + redondear a 5 decimales
+        for col in df2.columns:
+            if pd.api.types.is_numeric_dtype(df2[col]):
+                df2[col] = df2[col].astype(float).round(5)
+
+        #renombramos las columnass a mayusculas
+        df2.columns = df2.columns.str.upper()
+
+        return  df2
+
+    except Exception as e:
+        # Si algo falla, imprimimos a consola qué columnas provocaron el error
+        print(f"format_df ERROR: {e}")
+        print(f"Columnas en df original: {df.columns.tolist()}")
+        return df
+
+
 
 
 # ——— Al importar el módulo, establecemos “forex” como modo por defecto ———

@@ -7,7 +7,7 @@ from datetime import datetime, date, time, timedelta
 import pandas as pd
 import zipfile
 
-from app.mt5_client import fetch_ohlc_chunked, fetch_ticks_chunked, set_mode
+from app.mt5_client import fetch_ohlc_chunked, fetch_ticks_chunked, set_mode, format_df
 
 # Detección de la carpeta de plantillas y estáticos
 if getattr(sys, "frozen", False):
@@ -106,6 +106,14 @@ def download():
     # 5) Descarga OHLCV chunked
     try:
         df_ohlc = fetch_ohlc_chunked(symbol, interval, start, end)
+        # Devolvemos las columnas de salida
+        df_ohlc = df_ohlc[['time', 'open', 'high', 'low', 'close', 'tick_volume', 'real_volume', 'spread']]
+
+        # Renombrar las siguientes columnas
+        df_ohlc = df_ohlc.rename(columns={'tick_volume': 'TICKVOL', 'real_volume': 'VOL'})
+
+        #formateamos
+        df_ohlc = format_df(df_ohlc)
     except Exception as e:
         abort(500, f"Error al descargar OHLCV: {e}")
 
