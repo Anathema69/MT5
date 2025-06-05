@@ -2,15 +2,21 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MT5 OHLC Downloader</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MT5 OHLC + Ticks Downloader</title>
   <!-- Flatpickr CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
+  />
   <!-- Tom Select CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.default.min.css">
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.default.min.css"
+  />
   <!-- Estilos propios -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
 </head>
 <body>
   <!-- Loader overlay -->
@@ -23,13 +29,19 @@
 
   <div class="container">
     <div class="card">
-      <h1>MT5 OHLC Downloader</h1>
+      <h1>MT5 OHLC + Ticks Downloader</h1>
 
       <form id="download-form" action="/download" method="post">
         <!-- Tipo de activo -->
         <div class="asset-type">
-          <label><input type="radio" name="asset_type" value="synthetic" checked> Sintéticos</label>
-          <label><input type="radio" name="asset_type" value="forex"> Forex</label>
+          <label>
+            <input type="radio" name="asset_type" value="synthetic" checked />
+            Sintéticos
+          </label>
+          <label>
+            <input type="radio" name="asset_type" value="forex" />
+            Forex
+          </label>
         </div>
 
         <!-- Grid: Símbolo + Intervalo -->
@@ -37,13 +49,13 @@
           <div class="field">
             <label for="symbol-select">Símbolo</label>
             <select id="symbol-select" name="symbol" required>
-              <!-- JS se encargará de inyectar opciones y seleccionar la primera -->
+              <!-- JS inyecta aquí las opciones -->
             </select>
           </div>
           <div class="field">
             <label for="interval-select">Intervalo</label>
             <select id="interval-select" name="interval" required>
-              <!-- JS inyecta los intervalos y selecciona el primero -->
+              <!-- JS inyecta aquí los intervalos -->
             </select>
           </div>
         </div>
@@ -52,34 +64,44 @@
         <div class="grid">
           <div class="field">
             <label for="start-date">Fecha inicio</label>
-            <!-- Valor inicial: {{ default_start }} -->
             <input
               type="text"
               id="start-date"
               name="start_date"
               value="{{ default_start }}"
               required
-            >
+            />
           </div>
           <div class="field">
             <label for="end-date">Fecha fin</label>
-            <!-- Valor inicial: {{ default_end }} -->
             <input
               type="text"
               id="end-date"
               name="end_date"
               value="{{ default_end }}"
               required
-            >
+            />
           </div>
         </div>
 
-        <button type="submit">Descargar CSV</button>
+        <!-- Contenedor del checkbox “Descargar Ticks” -->
+        <div id="ticks-container" class="field" style="margin-top: 1rem;">
+          <label>
+            <input
+              type="checkbox"
+              id="download-ticks"
+              name="download_ticks"
+            />
+            Descargar Ticks (solo Sintéticos)
+          </label>
+        </div>
+
+        <button type="submit">Descargar CSV/ZIP</button>
       </form>
     </div>
   </div>
 
-  <!-- JS libs y lógica -->
+  <!-- JS libs-->
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>

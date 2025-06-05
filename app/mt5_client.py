@@ -31,7 +31,7 @@ _SERVER   = None
 _initialized = False
 _server_offset: timedelta = None  # offset local del broker
 
-# Timeframe -> segundos por barra
+# Timeframe → segundos por barra
 _BAR_SECONDS = {
     "M1":   60,      "M2":   120,    "M3":   180,    "M4":   240,
     "M5":  300,      "M6":   360,    "M10":  600,    "M12":  720,
@@ -47,8 +47,8 @@ _CHUNK_BARS = 70000  # barras por chunk recomendado
 def set_mode(mode: str):
     """
     Configura globalmente _MT5_PATH, _LOGIN, _PASSWORD y _SERVER según el modo:
-      - "forex"    -> usa credenciales de _FOREX
-      - "synthetic" -> usa credenciales de _SYNTHETIC
+      - "forex"    → usa credenciales de _FOREX
+      - "synthetic" → usa credenciales de _SYNTHETIC
 
     Si ya había una instancia inicializada, se hace shutdown para forzar reconexión.
     """
@@ -78,7 +78,7 @@ def initialize_mt5():
     Inicializa MT5 una sola vez usando las variables globales:
         _MT5_PATH, _LOGIN, _PASSWORD, _SERVER.
 
-    Después de inicializar, lee el offset horario del broker.
+    Luego lee el offset horario del broker.
     """
     global _initialized, _server_offset
 
@@ -89,7 +89,6 @@ def initialize_mt5():
     logger.debug(f"LOGIN configurado:    {_LOGIN!r}")
     logger.debug(f"SERVER configurado:   {_SERVER!r}")
 
-    # Llamamos a mt5.initialize con los valores que haya dejado set_mode()
     success = mt5.initialize(
         path=_MT5_PATH,
         login=_LOGIN,
@@ -101,7 +100,6 @@ def initialize_mt5():
         err = mt5.last_error()
         raise RuntimeError(f"MT5 initialize() falló: {err}")
 
-    # terminal_info().timezone suele ser la diferencia en segundos respecto a UTC
     info = mt5.terminal_info()
     tz_secs = getattr(info, "timezone", 0)
     _server_offset = timedelta(seconds=tz_secs)
@@ -162,18 +160,13 @@ def fetch_ohlc(symbol: str,
     # 5) A DataFrame y convertimos el campo `time` (viene en UTC)
     df = pd.DataFrame(rates)
     df['time'] = pd.to_datetime(df['time'], unit='s', utc=True)
-    # Lo llevamos de UTC -> zona local del broker, luego lo hacemos naïve:
-    df['time'] = (
-        df['time']
-        .dt.tz_convert(local_tz)
-        .dt.tz_localize(None)
-    )
+    df['time'] = df['time'].dt.tz_convert(local_tz).dt.tz_localize(None)
 
     # 6) Filtramos exactamente entre start y end (inclusive si quieres)
     df = df[(df['time'] >= start) & (df['time'] <= end)]
 
-    # 7) Devolvemos solo las columnas de salida
-    return df #[['time', 'open', 'high', 'low', 'close', 'tick_volume']]
+    # 7) Devolvemos las columnas de salida
+    return df[['time', 'open', 'high', 'low', 'close', 'tick_volume']]
 
 
 def _get_chunks(start: datetime, end: datetime, bar_seconds: int) -> list[tuple[datetime, datetime]]:
@@ -209,6 +202,39 @@ def fetch_ohlc_chunked(symbol: str,
 
     full = pd.concat(dfs, ignore_index=True)
     full = full.drop_duplicates(subset=['time'])
+    full = full.sort_values('time').reset_index(drop=True)
+    return full
+
+
+def fetch_ticks_chunked(symbol: str,
+                        start: datetime,
+                        end: datetime) -> pd.DataFrame:
+    """
+    Descarga TICKS entre start y end (datetime naïve en zona local del broker),
+    en “chunks” de 1 día (86400 segundos) para no sobrecargar MT5 en rangos muy largos.
+    """
+    initialize_mt5()
+
+    secs_per_day = 86400
+    chunks = _get_chunks(start, end, secs_per_day)
+
+    dfs = []
+    for s, e in chunks:
+        # copy_ticks_range devuelve un array de ticks
+        ticks = mt5.copy_ticks_range(symbol, s, e, mt5.COPY_TICKS_ALL)
+        if ticks is None:
+            continue
+        df_chunk = pd.DataFrame(ticks)
+        # Convertimos la columna `time` (segundos UTC) a datetime naïve en local:
+        df_chunk['time'] = pd.to_datetime(df_chunk['time'], unit='s', utc=True)
+        df_chunk['time'] = df_chunk['time'].dt.tz_localize(None)
+        dfs.append(df_chunk)
+
+    if not dfs:
+        # Si no hubo ticks, devolvemos un DataFrame vacío con columnas típicas
+        return pd.DataFrame(columns=['time', 'bid', 'ask', 'last', 'volume'])
+
+    full = pd.concat(dfs, ignore_index=True)
     full = full.sort_values('time').reset_index(drop=True)
     return full
 

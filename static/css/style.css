@@ -219,3 +219,39 @@ button[type="submit"]:hover {
     padding: 0.75rem;
   }
 }
+/* ==============================
+   Checkbox: restaurar apariencia nativa
+   ============================== */
+input[type="checkbox"] {
+  /* Forzamos la apariencia estándar del sistema (Windows/macOS/etc) */
+  -webkit-appearance: checkbox;  /* Chrome, Safari */
+  -moz-appearance: checkbox;     /* Firefox */
+  appearance: checkbox;
+  width: 1.25rem;   /* Tamaño un poco más grande */
+  height: 1.25rem;
+  cursor: pointer;
+  margin-right: 0.5rem;
+}
+
+/* Color de fondo y borde para el checkbox cuando NO está marcado */
+input[type="checkbox"] {
+  background-color: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+/* Cuando está marcado, que el fondo sea var(--accent) y el check contrastante */
+input[type="checkbox"]:checked {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Ajuste fino: el ícono interno (✓) debe verse de color oscuro para contrastar */
+input[type="checkbox"]:checked::before {
+  content: "\2713";       /* ✓ */
+  display: block;
+  color: var(--bg);       /* tip: fondo oscuro es var(--bg), así el check se ve claro */
+  font-weight: bold;
+  text-align: center;
+  line-height: 1.25rem;
+}
