@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 # ——— Credenciales y rutas para cada modo ———
 _FOREX = {
     "MT5_PATH": r"C:\Program Files\MetaTrader 5\terminal64.exe",
-    "LOGIN":    680557,
-    "PASSWORD": "-nSsId0a",
-    "SERVER":   "TenTrade-Server"
+    "LOGIN":    5037099836,
+    "PASSWORD": "Cm_1NbVj",
+    "SERVER":   "MetaQuotes-Demo"
 }
 _SYNTHETIC = {
     "MT5_PATH": r"C:\Program Files\MT5 Weltrade\terminal64.exe",
